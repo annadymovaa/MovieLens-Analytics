@@ -1,5 +1,6 @@
 #Разрешённые импорты: os, sys, urllib, requests, beautifulsoup, json, pytest, collections, functools, datetime, re.
-
+from datetime import datetime
+from collections import Counter
 
 class Links:
     """
@@ -93,22 +94,44 @@ class Ratings:
     Analyzing data from ratings.csv
     """
     def __init__(self, path_to_the_file):
-        """
-        Put here any fields that you think you will need.
-        """
-    class Movies:    
+        self.filepath = path_to_the_file #'../datasets/ml-latest-small-1000/ratings_1000.csv'
+        self.movies = self.Movies(self)
+
+    class Movies:  
+        def __init__(self, outer_instance):
+            # Сохраняем ссылку на внешний объект
+            self.outer = outer_instance  
+
         def dist_by_year(self):
-            """
-            The method returns a dict where the keys are years and the values are counts. 
-            Sort it by years ascendingly. You need to extract years from timestamps.
-            """
+            #{year : count} по ключам по возрастанию
+
+            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
+                content = file.readlines()
+
+            years = []
+            for i in range(1, 1001):
+                line = content[i].split(',')
+                timestamp = int(line[3])
+                m_year = datetime.fromtimestamp(timestamp).year
+                years.append(m_year)
+            count_by_year = Counter(years)
+            ratings_by_year = dict(sorted(count_by_year.items()))
+
             return ratings_by_year
         
         def dist_by_rating(self):
-            """
-            The method returns a dict where the keys are ratings and the values are counts.
-         Sort it by ratings ascendingly.
-            """
+            #{rating : count} по рейтингу по возрастанию
+            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
+                content = file.readlines()
+            
+            ratings = []
+            for i in range(1, 1001):
+                line = content[i].split(',')
+                rating = float(line[2])
+                ratings.append(rating)
+            count_by_rating = Counter(ratings)
+            ratings_distribution = dict(sorted(count_by_rating.items()))
+
             return ratings_distribution
         
         def top_by_num_of_ratings(self, n):
