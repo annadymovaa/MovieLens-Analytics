@@ -135,14 +135,50 @@ class Ratings:
             return ratings_distribution
         
         def top_by_num_of_ratings(self, n):
-            """
-            The method returns top-n movies by the number of ratings. 
-            It is a dict where the keys are movie titles and the values are numbers.
-     Sort it by numbers descendingly.
-            """
+            #{movie_title : num of ratings} по номерам по убыванию
+            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
+                content = file.readlines()
+
+            mov_id_rat = dict()
+            for i in range(1, 1001):
+                line = content[i].split(',')
+                movie_id = line[1]
+                if movie_id not in mov_id_rat:
+                    mov_id_rat[movie_id] = 1
+                else:
+                    mov_id_rat[movie_id] += 1
+            movie_ids = dict(sorted(mov_id_rat.items(), key=lambda item: item[1], reverse=True))
+
+            top_movie_ids = dict(list(movie_ids.items())[:n])
+
+            # кажется, что для этого сойдет какой-нибудь метод из класса Movies
+            # пока что оставлю так
+            # with open('../datasets/ml-latest-small-1000/movies_1000.csv', 'r', encoding='utf-8') as file:
+            #     movies = file.readlines()
+            # for movie_id in top_movie_ids:
+            #     for movie in movies:
+            #         line = movie.split(',')
+            #         if movie_id == line[0]:
+
+            top_movies = top_movie_ids
             return top_movies
         
         def top_by_ratings(self, n, metric=average):
+            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
+                content = file.readlines() 
+
+            mov_id_rat = dict()
+            for i in range(1, 1001):
+                line = content[i].split(',')
+                movie_id = line[1] 
+                rating = float(line[2])   
+                if movie_id not in mov_id_rat:
+                    mov_id_rat[movie_id] = [rating]
+                else:
+                    mov_id_rat[movie_id].append(rating)
+            
+            top_movies = mov_id_rat
+            #movie_ids = dict(sorted(mov_id_rat.items(), key=lambda item: item[1], reverse=True))               
             """
             The method returns top-n movies by the average or median of the ratings.
             It is a dict where the keys are movie titles and the values are metric values.
