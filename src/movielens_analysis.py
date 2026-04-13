@@ -148,7 +148,7 @@ class Ratings:
             movie_ids = dict(sorted(mov_id_rat.items(), key=lambda item: item[1], reverse=True))
 
             top_movie_ids = dict(list(movie_ids.items())[:n])
-
+            #TODO: добавить замену айди на название фильма
             # кажется, что для этого сойдет какой-нибудь метод из класса Movies
             # пока что оставлю так
             # with open('../datasets/ml-latest-small-1000/movies_1000.csv', 'r', encoding='utf-8') as file:
@@ -161,20 +161,22 @@ class Ratings:
             top_movies = top_movie_ids
             return top_movies
         
-        def top_by_ratings(self, n, metric='average'):
-
-            mov_id_rat = dict()
+        def dict_of_ids_rats(self):
+            self.mov_id_rat = dict()
             for i in range(1, 1001):
                 line = self.outer.content[i].split(',')
                 movie_id = line[1] 
                 rating = float(line[2])   
-                if movie_id not in mov_id_rat:
-                    mov_id_rat[movie_id] = list()
-                mov_id_rat[movie_id].append(rating)
-            
+                if movie_id not in self.mov_id_rat:
+                    self.mov_id_rat[movie_id] = list()
+                self.mov_id_rat[movie_id].append(rating)
+        
+        def top_by_ratings(self, n, metric='average'):
+            self.dict_of_ids_rats()
+
             movie_id_metrics = dict()
-            for movie in mov_id_rat:
-                list_of_rats = mov_id_rat[movie]
+            for movie in self.mov_id_rat:
+                list_of_rats = self.mov_id_rat[movie]
                 if metric == 'average':
                     num = len(list_of_rats)
                     if num != 1:
@@ -201,6 +203,7 @@ class Ratings:
             top_movie_ids = dict(list(movie_ids.items())[:n])
             
             top_movies = top_movie_ids
+            #TODO: добавить замену айди на название фильма
               
             """
             The method returns top-n movies by the average or median of the ratings.
@@ -211,6 +214,26 @@ class Ratings:
             return top_movies
         
         def top_controversial(self, n):
+            self.dict_of_ids_rats()
+            movie_id_metrics = dict()
+            for movie in self.mov_id_rat:
+                list_of_rats = self.mov_id_rat[movie]
+                variance = 0
+                rat_count = len(list_of_rats)
+                if rat_count != 1:
+                    cumulator = 0
+                    mean = sum(list_of_rats) / rat_count
+                    for rating in list_of_rats:
+                        cumulator += (rating - mean) ** 2
+                    variance = cumulator / rat_count
+                movie_id_metrics[movie] = round(variance, 2)
+
+            movie_ids = dict(sorted(movie_id_metrics.items(), key=lambda item: item[1], reverse=True))
+            top_movie_ids = dict(list(movie_ids.items())[:n])
+            
+            top_movies = top_movie_ids
+            #TODO: добавить замену айди на название фильма
+
             """
             The method returns top-n movies by the variance of the ratings.
             It is a dict where the keys are movie titles and the values are the variances.
