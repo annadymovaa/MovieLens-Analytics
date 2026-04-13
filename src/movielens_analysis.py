@@ -93,9 +93,14 @@ class Ratings:
     """
     Analyzing data from ratings.csv
     """
-    def __init__(self, path_to_the_file):
-        self.filepath = path_to_the_file #'../datasets/ml-latest-small-1000/ratings_1000.csv'
+    def __init__(self, path_to_the_file='../datasets/ml-latest-small-1000/ratings_1000.csv'):
+        self.filepath = path_to_the_file 
         self.movies = self.Movies(self)
+        self.get_content()
+
+        def get_content(self):
+            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
+                self.content = file.readlines()
 
     class Movies:  
         def __init__(self, outer_instance):
@@ -105,12 +110,9 @@ class Ratings:
         def dist_by_year(self):
             #{year : count} по ключам по возрастанию
 
-            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
-                content = file.readlines()
-
             years = []
             for i in range(1, 1001):
-                line = content[i].split(',')
+                line = self.outer.content[i].split(',')
                 timestamp = int(line[3])
                 m_year = datetime.fromtimestamp(timestamp).year
                 years.append(m_year)
@@ -121,12 +123,10 @@ class Ratings:
         
         def dist_by_rating(self):
             #{rating : count} по рейтингу по возрастанию
-            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
-                content = file.readlines()
-            
+
             ratings = []
             for i in range(1, 1001):
-                line = content[i].split(',')
+                line = self.outer.content[i].split(',')
                 rating = float(line[2])
                 ratings.append(rating)
             count_by_rating = Counter(ratings)
@@ -136,12 +136,10 @@ class Ratings:
         
         def top_by_num_of_ratings(self, n):
             #{movie_title : num of ratings} по номерам по убыванию
-            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
-                content = file.readlines()
 
             mov_id_rat = dict()
             for i in range(1, 1001):
-                line = content[i].split(',')
+                line = self.outer.content[i].split(',')
                 movie_id = line[1]
                 if movie_id not in mov_id_rat:
                     mov_id_rat[movie_id] = 1
@@ -163,22 +161,47 @@ class Ratings:
             top_movies = top_movie_ids
             return top_movies
         
-        def top_by_ratings(self, n, metric=average):
-            with open(self.outer.filepath, 'r', encoding='utf-8') as file:
-                content = file.readlines() 
+        def top_by_ratings(self, n, metric='average'):
 
             mov_id_rat = dict()
             for i in range(1, 1001):
-                line = content[i].split(',')
+                line = self.outer.content[i].split(',')
                 movie_id = line[1] 
                 rating = float(line[2])   
                 if movie_id not in mov_id_rat:
-                    mov_id_rat[movie_id] = [rating]
-                else:
-                    mov_id_rat[movie_id].append(rating)
+                    mov_id_rat[movie_id] = list()
+                mov_id_rat[movie_id].append(rating)
             
-            top_movies = mov_id_rat
-            #movie_ids = dict(sorted(mov_id_rat.items(), key=lambda item: item[1], reverse=True))               
+            movie_id_metrics = dict()
+            for movie in mov_id_rat:
+                list_of_rats = mov_id_rat[movie]
+                if metric == 'average':
+                    num = len(list_of_rats)
+                    if num != 1:
+                        metric_v = sum(list_of_rats) / len(list_of_rats)
+                    else:
+                        metric_v = list_of_rats[0]
+                elif metric == 'median':
+                    num = len(list_of_rats)
+                    if num != 1:
+                        sorted_rating = sorted(list_of_rats)
+                        mid = num // 2
+                        if num % 2 == 1:
+                            metric_v = sorted_rating[mid]
+                        else:
+                            metric_v = (sorted_rating[mid - 1] + sorted_rating[mid]) / 2
+                    else:
+                        metric_v = list_of_rats[0]
+                else:
+                    raise Exception('The metric is wrong! Choose between average and median')
+            
+                movie_id_metrics[movie] = round(metric_v, 2)
+            
+            movie_ids = dict(sorted(movie_id_metrics.items(), key=lambda item: item[1], reverse=True))
+            top_movie_ids = dict(list(movie_ids.items())[:n])
+            
+            top_movies = top_movie_ids
+              
             """
             The method returns top-n movies by the average or median of the ratings.
             It is a dict where the keys are movie titles and the values are metric values.
