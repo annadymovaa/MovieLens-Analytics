@@ -1,141 +1,182 @@
 #Разрешённые импорты: os, sys, urllib, requests, beautifulsoup, json, pytest, collections, functools, datetime, re.
+from datetime import datetime
+from collections import Counter
 
-
-class Links:
-    """
-    Analyzing data from links.csv
-    """
-    def __init__(self, path_to_the_file):
-        """
-        Put here any fields that you think you will need.
-        """
-    
-    def get_imdb(list_of_movies, list_of_fields):
-        """
-The method returns a list of lists [movieId, field1, field2, field3, ...] for the list of movies given as the argument (movieId).
-        For example, [movieId, Director, Budget, Cumulative Worldwide Gross, Runtime].
-        The values should be parsed from the IMDB webpages of the movies.
-     Sort it by movieId descendingly.
-        """
-        return imdb_info
-        
-    def top_directors(self, n):
-        """
-        The method returns a dict with top-n directors where the keys are directors and 
-        the values are numbers of movies created by them. Sort it by numbers descendingly.
-        """
-        return directors
-        
-    def most_expensive(self, n):
-        """
-        The method returns a dict with top-n movies where the keys are movie titles and
-        the values are their budgets. Sort it by budgets descendingly.
-        """
-        return budgets
-        
-    def most_profitable(self, n):
-        """
-        The method returns a dict with top-n movies where the keys are movie titles and
-        the values are the difference between cumulative worldwide gross and budget.
-     Sort it by the difference descendingly.
-        """
-        return profits
-        
-    def longest(self, n):
-        """
-        The method returns a dict with top-n movies where the keys are movie titles and
-        the values are their runtime. If there are more than one version – choose any.
-     Sort it by runtime descendingly.
-        """
-        return runtimes
-        
-    def top_cost_per_minute(self, n):
-        """
-        The method returns a dict with top-n movies where the keys are movie titles and
-the values are the budgets divided by their runtime. The budgets can be in different currencies – do not pay attention to it. 
-     The values should be rounded to 2 decimals. Sort it by the division descendingly.
-        """
-        return costs
-    
-    
-class Movies:
-    """
-    Analyzing data from movies.csv
-    """
-    def __init__(self, path_to_the_file):
-        """
-        Put here any fields that you think you will need.
-        """    
-    def dist_by_release(self):
-        """
-        The method returns a dict or an OrderedDict where the keys are years and the values are counts. 
-        You need to extract years from the titles. Sort it by counts descendingly.
-        """
-        return release_years
-    
-    def dist_by_genres(self):
-        """
-        The method returns a dict where the keys are genres and the values are counts.
-     Sort it by counts descendingly.
-        """
-        return genres
-        
-    def most_genres(self, n):
-        """
-        The method returns a dict with top-n movies where the keys are movie titles and 
-        the values are the number of genres of the movie. Sort it by numbers descendingly.
-        """
-        return movies
-    
 
 class Ratings:
     """
     Analyzing data from ratings.csv
     """
-    def __init__(self, path_to_the_file):
-        """
-        Put here any fields that you think you will need.
-        """
-    class Movies:    
-        def dist_by_year(self):
-            """
-            The method returns a dict where the keys are years and the values are counts. 
-            Sort it by years ascendingly. You need to extract years from timestamps.
-            """
+    def __init__(self, path='../datasets/ml-latest-small-1000/ratings_1000.csv'):
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            raise FileNotFoundError(f"Файл не найден или пустой: {path}")
+        
+        self.filepath = path
+        self.get_content()
+        self.users = self.Users(self)
+
+    def get_content(self):
+        with open(self.filepath, 'r', encoding='utf-8') as file:
+            content = file.readlines()
+        movies = Movies()
+        self.content = list()
+        for i in content[1:]:
+            line = i.split(',')
+            line_dict = {
+                'userId' : line[0].strip(),
+                'movieId' : line[1].strip(),
+                'rating' : float(line[2].strip()),
+                'timestamp' : int(line[3].strip()),
+                'title' : None
+            }
+            
+            for movie in movies.movies_data:
+                if str(line_dict['movieId']) == str(movie['movieId']):
+                    line_dict['title'] = movie['title']
+                    break
+            self.content.append(line_dict)
+
+
+    class Movies:  
+        def __init__(self, outer_instance):
+            #сохраняем ссылку на внешний объект
+            self.outer = outer_instance  
+
+        def dist_by_year(self, n=10):
+            #{year : count} по ключам по возрастанию
+
+            years = []
+            for line in self.outer.content:
+                timestamp = line['timestamp']
+                m_year = datetime.fromtimestamp(timestamp).year
+                years.append(m_year)
+            count_by_year = Counter(years)
+            ratings_by_year = dict(sorted(count_by_year.items()))
+
+            print("📅 КОЛИЧЕСТВО ОЦЕНОК ФИЛЬМОВ ПО ГОДАМ (1996 - 2015):")
+            for year, count in list(ratings_by_year.items())[:n]:
+                bar = "█" * (count // 5)
+                print(f"{year}: {bar} {count}")
             return ratings_by_year
         
         def dist_by_rating(self):
-            """
-            The method returns a dict where the keys are ratings and the values are counts.
-         Sort it by ratings ascendingly.
-            """
+            #{rating : count} по рейтингу по возрастанию
+
+            ratings = []
+            for line in self.outer.content:
+                rating = line['rating']
+                ratings.append(rating)
+            count_by_rating = Counter(ratings)
+            ratings_distribution = dict(sorted(count_by_rating.items()))
+            print("Распределение по количеству оценок:")
+            for rating, count in ratings_distribution.items():
+                print(f"⭐ {rating} — {count} оценок")
             return ratings_distribution
+                
+        def dict_of_mov_rats(self):
+            self.mov_rating = dict()
+            for line in self.outer.content:
+                key = (line['movieId'], line['title'])
+                if key not in self.mov_rating:
+                    self.mov_rating[key] = list()
+                self.mov_rating[key].append(line['rating'])
         
-        def top_by_num_of_ratings(self, n):
-            """
-            The method returns top-n movies by the number of ratings. 
-            It is a dict where the keys are movie titles and the values are numbers.
-     Sort it by numbers descendingly.
-            """
+        def top_by_num_of_ratings(self, n=10):
+            #{movie_title : num of ratings} по номерам по убыванию
+            self.dict_of_mov_rats()
+            mov_rating = list()
+            for (movieId, title), ratings in self.mov_rating.items():
+                if title is not None:
+                    mov_rating.append((title, len(ratings)))
+
+            movies = list(sorted(mov_rating, key=lambda item: item[1], reverse=True))
+            top_movies = dict(movies[:n])
+
+            print("🏆 ТОП-10 ФИЛЬМОВ ПО КОЛИЧЕСТВУ ОЦЕНОК:")
+            for title, metric in top_movies.items():
+                print(f"• {title} - {metric} оценки")
             return top_movies
         
-        def top_by_ratings(self, n, metric=average):
-            """
-            The method returns top-n movies by the average or median of the ratings.
-            It is a dict where the keys are movie titles and the values are metric values.
-            Sort it by metric descendingly.
-            The values should be rounded to 2 decimals.
-            """
+        def top_by_ratings(self, n=10, metric='average'):
+            self.dict_of_mov_rats()
+            movie_metrics = [] 
+
+            for (m_id, title), list_of_rats in self.mov_rating.items():
+                if title is None: continue  # Пропускаем фильмы без названий
+                
+                num = len(list_of_rats)
+                if metric == 'average':
+                    metric_v = sum(list_of_rats) / num
+                elif metric == 'median':
+                    sorted_rating = sorted(list_of_rats)
+                    mid = num // 2
+                    if num % 2 == 1:
+                        metric_v = sorted_rating[mid]
+                    else:
+                        metric_v = (sorted_rating[mid - 1] + sorted_rating[mid]) / 2
+                else:
+                    raise Exception('The metric is wrong! Choose between average and median')
+                
+                movie_metrics.append((title, round(metric_v, 2)))
+            
+            movie_metrics.sort(key=lambda x: x[1], reverse=True)
+            top_movies = dict(movie_metrics[:n])
+
+            print(f"🏆 ТОП-10 ФИЛЬМОВ ПО {metric.upper()}:")
+            place = 1
+            for title, metric_v in top_movies.items():
+                print(f"{place}. {title} ({metric_v} ⭐)")
+                place += 1
             return top_movies
+
+        def top_controversial(self, n=10):
+            self.dict_of_mov_rats()
+            movie_metrics = []
+
+            for (m_id, title), list_of_rats in self.mov_rating.items():
+                if title is None: continue
+                
+                rat_count = len(list_of_rats)
+                if rat_count < 2: # Дисперсия одного числа всегда 0
+                    variance = 0
+                else:
+                    mean = sum(list_of_rats) / rat_count
+                    cumulator = sum((rating - mean) ** 2 for rating in list_of_rats)
+                    variance = cumulator / rat_count
+                    
+                movie_metrics.append((title, round(variance, 2)))
+
+            movie_metrics.sort(key=lambda x: x[1], reverse=True)
+            controversial_movies = dict(movie_metrics[:n])
+
+            place = 1
+            for title, variance in controversial_movies.items():
+                print(f'{place} место : {title} (дисперсия оценок {variance})')
+                place += 1
+
+            return controversial_movies
+
         
-        def top_controversial(self, n):
-            """
-            The method returns top-n movies by the variance of the ratings.
-            It is a dict where the keys are movie titles and the values are the variances.
-          Sort it by variance descendingly.
-            The values should be rounded to 2 decimals.
-            """
-            return top_movies
+        def top_by_max_ratings(self, n=1):
+            self.dict_of_mov_rats()
+            max_rating_count = []
+
+            for (m_id, title), ratings in self.mov_rating.items():
+                if title is None: continue
+                
+                count_max = ratings.count(5.0)
+                if count_max > 0:
+                    max_rating_count.append((title, count_max))
+
+            max_rating_count.sort(key=lambda x: x[1], reverse=True)
+            top_favorite_movie = dict(max_rating_count[:n])
+
+            place = 1
+            for title, count in top_favorite_movie.items():
+                print(f'{place} : {title} (кол-во отличных оценок {count})')
+                place += 1
+            return top_favorite_movie
+
 
     class Users(Movies):
         """
@@ -145,50 +186,86 @@ class Ratings:
         The 3rd returns top-n users with the biggest variance of their ratings.
      Inherit from the class Movies. Several methods are similar to the methods from it.
         """
+    
+        def dist_by_activity(self):
+            #{user : count} по кол-ву оценок по убыванию
 
-
-class Tags:
-    """
-    Analyzing data from tags.csv
-    """
-    def __init__(self, path_to_the_file):
-        """
-        Put here any fields that you think you will need.
-        """
-    def most_words(self, n):
-        """
-        The method returns top-n tags with most words inside. It is a dict 
- where the keys are tags and the values are the number of words inside the tag.
- Drop the duplicates. Sort it by numbers descendingly.
-        """
-        return big_tags
-
-    def longest(self, n):
-        """
-        The method returns top-n longest tags in terms of the number of characters.
-        It is a list of the tags. Drop the duplicates. Sort it by numbers descendingly.
-        """
-        return big_tags
-
-    def most_words_and_longest(self, n):
-        """
-        The method returns the intersection between top-n tags with most words inside and 
-        top-n longest tags in terms of the number of characters.
-        Drop the duplicates. It is a list of the tags.
-        """
-        return big_tags
+            users = []
+            for line in self.outer.content:
+                user = line['userId']
+                users.append(user)
+            count_by_ratings = Counter(users)
+            ratings_by_user = dict(sorted(count_by_ratings.items(), key=lambda item: item[1], reverse=True))
+            place = 1
+            for user, ratings in ratings_by_user.items():
+                print(f'{place} место : user {user} ({ratings} оценок)')
+                place += 1
+            return ratings_by_user
         
-    def most_popular(self, n):
-        """
-        The method returns the most popular tags. 
-        It is a dict where the keys are tags and the values are the counts.
-        Drop the duplicates. Sort it by counts descendingly.
-        """
-        return popular_tags
+        def dict_of_user_rats(self):
+            self.user_id_rat = dict()
+            for line in self.outer.content:
+                user_id = line['userId'] 
+                rating = line['rating']  
+                if user_id not in self.user_id_rat:
+                    self.user_id_rat[user_id] = list()
+                self.user_id_rat[user_id].append(rating)
         
-    def tags_with(self, word):
-        """
-        The method returns all unique tags that include the word given as the argument.
-        Drop the duplicates. It is a list of the tags. Sort it by tag names alphabetically.
-        """
-        return tags_with_word
+        def dist_by_metric(self, metric='average'):
+            self.dict_of_user_rats()
+
+            user_id_metrics = dict()
+            for user in self.user_id_rat:
+                list_of_rats = self.user_id_rat[user]
+                if metric == 'average':
+                    num = len(list_of_rats)
+                    if num != 1:
+                        metric_v = sum(list_of_rats) / len(list_of_rats)
+                    else:
+                        metric_v = list_of_rats[0]
+                elif metric == 'median':
+                    num = len(list_of_rats)
+                    if num != 1:
+                        sorted_rating = sorted(list_of_rats)
+                        mid = num // 2
+                        if num % 2 == 1:
+                            metric_v = sorted_rating[mid]
+                        else:
+                            metric_v = (sorted_rating[mid - 1] + sorted_rating[mid]) / 2
+                    else:
+                        metric_v = list_of_rats[0]
+                else:
+                    raise Exception('The metric is wrong! Choose between average and median')
+            
+                user_id_metrics[user] = round(metric_v, 2)
+            
+            user_ids = dict(sorted(user_id_metrics.items(), key=lambda item: item[1], reverse=True))
+            place = 1
+            print((f'\nТоп пользователей по {metric.upper()}:'))
+            for user, metric_v in user_ids.items():
+                print(f'{place} место : user {user} ({metric_v} ⭐)')
+                place += 1
+            return user_ids
+
+        def top_controversial_users(self, n=3):
+            self.dict_of_user_rats()
+            user_id_metrics = dict()
+            for movie in self.user_id_rat:
+                list_of_rats = self.user_id_rat[movie]
+                variance = 0
+                rat_count = len(list_of_rats)
+                if rat_count != 1:
+                    cumulator = 0
+                    mean = sum(list_of_rats) / rat_count
+                    for rating in list_of_rats:
+                        cumulator += (rating - mean) ** 2
+                    variance = cumulator / rat_count
+                user_id_metrics[movie] = round(variance, 2)
+
+            user_ids = dict(sorted(user_id_metrics.items(), key=lambda item: item[1], reverse=True))
+            top_user_ids = dict(list(user_ids.items())[:n])
+            place = 1
+            for user, variance in top_user_ids.items():
+                print(f'{place} место : user {user} (дисперсия оценок {variance})')
+                place += 1
+            return top_user_ids
